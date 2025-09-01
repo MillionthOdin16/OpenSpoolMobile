@@ -365,7 +365,7 @@ export class BambuPrinterService {
             this.connected = true;
             
             // Subscribe to printer reports
-            client.subscribe(this.reportTopic);
+            client.subscribe(this.reportTopic, 0);
             
             // Request initial status
             this.requestStatusUpdate();
@@ -373,8 +373,8 @@ export class BambuPrinterService {
             resolve(true);
           });
 
-          client.on('message', (topic: string, message: Buffer) => {
-            this.handleMessage(topic, message.toString());
+          client.on('message', (msg: { data: string; qos: number; retain: boolean; topic: string }) => {
+            this.handleMessage(msg.topic, msg.data);
           });
 
           client.on('error', (error: any) => {

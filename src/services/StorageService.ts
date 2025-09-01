@@ -31,4 +31,13 @@ export class StorageService {
       throw error;
     }
   }
+
+  static async clearAllData(): Promise<void> {
+    try {
+      await AsyncStorage.clear();
+    } catch (error) {
+      console.error('Failed to clear all data:', error);
+      throw error;
+    }
+  }
 }
