@@ -76,7 +76,7 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
 
       // Ensure brand is present - default to 'Generic' per spec
       const brand = jsonData.brand || 'Generic';
-      
+
       return {
         color_hex: jsonData.color_hex,
         type: jsonData.type.toLowerCase(), // Normalize to lowercase for consistency
@@ -165,7 +165,7 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
       // Temperature handling - OpenTag3D spec uses scaling factor of 5
       let min_temp = 190; // Default
       let max_temp = 220; // Default
-      
+
       if (jsonData.min_print_temp !== undefined) {
         min_temp = Number(jsonData.min_print_temp) * 5;
       } else if (jsonData.print_temp !== undefined) {
@@ -217,7 +217,7 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
         weight = Number(jsonData.weight);
       }
 
-      // Density handling - spec uses µg/cm³, convert to g/cm³ 
+      // Density handling - spec uses µg/cm³, convert to g/cm³
       let density;
       if (jsonData.density !== undefined) {
         if (Number(jsonData.density) > 100) {
@@ -289,7 +289,7 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
     if (data.min_temp !== undefined && data.max_temp !== undefined) {
       openTag3DData.print_temp = Math.round((data.min_temp + data.max_temp) / 2 / 5);
     }
-    
+
     if (data.bed_temp !== undefined) {
       openTag3DData.bed_temp_scaled = Math.round(data.bed_temp / 5); // OpenTag3D v0.003 spec field
     }
@@ -315,7 +315,7 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
     if (data.measured_tolerance !== undefined) {openTag3DData.measured_tolerance = data.measured_tolerance;}
     if (data.empty_spool_weight !== undefined) {openTag3DData.empty_spool_weight = data.empty_spool_weight;}
     if (data.measured_filament_length !== undefined) {openTag3DData.measured_filament_length = data.measured_filament_length;}
-    
+
     // For compatibility, include legacy field names with original values
     openTag3DData.material = data.material || data.material_base || data.type;
     openTag3DData.nozzle_temp_min = data.min_temp;
@@ -324,14 +324,14 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
     if (data.bed_temp !== undefined) {
       openTag3DData.bed_temp = data.bed_temp;
     }
-    
+
     // Temperature fields with scaling
     if (data.max_dry_temp !== undefined) {
       openTag3DData.max_dry_temp = Math.round(data.max_dry_temp / 5);
     }
     if (data.dry_time !== undefined) {openTag3DData.dry_time = data.dry_time;}
-    
-    // MFI fields with scaling  
+
+    // MFI fields with scaling
     if (data.mfi_temp !== undefined) {
       openTag3DData.mfi_temp = Math.round(data.mfi_temp / 5);
     }
@@ -356,7 +356,7 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
   }
 
   validateData(data: ExtendedFilamentData): boolean {
-    // OpenTag3D v0.003 spec requires: manufacturer, material_base, color, target_diameter, 
+    // OpenTag3D v0.003 spec requires: manufacturer, material_base, color, target_diameter,
     // target_weight, print_temp, bed_temp, density
     return !!(
       (data.brand || data.manufacturer) &&
