@@ -95,45 +95,53 @@ export class BambuPrinterService {
       try {
         const uri = `mqtt://${this.settings!.ipAddress}:1883`;
 
+        // Create a timeout that will reject the promise
+        const connectionTimeout = setTimeout(() => {
+          // Clean up client resources if it exists
+          if (this.client) {
+            this.client.disconnect();
+            this.client = null;
+          }
+          reject(new Error('Connection timeout'));
+        }, 10000);
+
         MQTT.createClient({
           uri,
           clientId: `openspool_mobile_${Date.now()}`,
           user: 'bblp',
           pass: this.settings!.accessCode || '',
           keepalive: 30,
-        }).then((client) => {
-          this.client = client;
+        })
+          .then(client => {
+            this.client = client;
 
-          client.on('connect', () => {
-            console.log('Connected to Bambu printer');
-            this.connected = true;
-            resolve(true);
-          });
+            client.on('connect', () => {
+              console.log('Connected to Bambu printer');
+              this.connected = true;
+              clearTimeout(connectionTimeout); // Clear the timeout on successful connection
+              resolve(true);
+            });
 
-          client.on('error', (error: any) => {
-            console.error('MQTT connection error:', error);
-            this.connected = false;
+            client.on('error', (error: any) => {
+              console.error('MQTT connection error:', error);
+              this.connected = false;
+              clearTimeout(connectionTimeout); // Clear the timeout on error
+              reject(error);
+            });
+
+            client.on('closed', () => {
+              console.log('MQTT connection closed');
+              this.connected = false;
+            });
+
+            // Start the connection
+            client.connect();
+          })
+          .catch(error => {
+            console.error('Failed to create MQTT client:', error);
+            clearTimeout(connectionTimeout); // Clear the timeout on client creation error
             reject(error);
           });
-
-          client.on('closed', () => {
-            console.log('MQTT connection closed');
-            this.connected = false;
-          });
-
-          // Timeout after 10 seconds
-          setTimeout(() => {
-            if (!this.isConnected()) {
-              reject(new Error('Connection timeout'));
-            }
-          }, 10000);
-
-          // Start the connection
-          client.connect();
-        }).catch((error) => {
-          console.error('Failed to create MQTT client:', error);
-          reject(error);
-        });
       } catch (error) {
         reject(error);
       }
