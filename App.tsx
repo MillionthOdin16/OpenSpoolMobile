@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
-import { bambuPrinterService, BambuPrinterService, FilamentData } from './src/services/BambuPrinterService';
+import { bambuPrinterService, BambuPrinterService } from './src/services/BambuPrinterService';
 import { StorageService } from './src/services/StorageService';
+import { tagProtocolService, TagProtocol, ExtendedFilamentData } from './src/services/TagProtocolService';
 
 const OpenSpool = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +37,10 @@ const OpenSpool = () => {
   const [printerAccessCode, setPrinterAccessCode] = useState('');
   const [isPrinterConnected, setIsPrinterConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [lastScannedFilament, setLastScannedFilament] = useState<FilamentData | null>(null);
+  const [lastScannedFilament, setLastScannedFilament] = useState<ExtendedFilamentData | null>(null);
+
+  // Protocol selection state
+  const [selectedProtocol, setSelectedProtocol] = useState<TagProtocol>(TagProtocol.OPENSPOOL);
 
   useEffect(() => {
     Animated.timing(rotateAnim, {
@@ -108,6 +112,11 @@ const OpenSpool = () => {
   const temperatures = Array.from({ length: 21 }, (_, i) => ({
     label: `${180 + i * 5}°C`,
     value: (180 + i * 5).toString(),
+  }));
+
+  const protocols = tagProtocolService.getAllProtocols().map(protocol => ({
+    label: `${protocol.label} v${protocol.version}`,
+    value: protocol.value,
   }));
 
   const slots = BambuPrinterService.getAvailableSlots().map(slot => ({
@@ -194,28 +203,40 @@ const OpenSpool = () => {
       if (tag?.ndefMessage) {
         const rawValue = tag.ndefMessage.map(record =>
           String.fromCharCode(...record.payload)
-        );
+        ).join('');
 
-        let jsonValue = JSON.parse(rawValue.toString());
-        var nfcColor = colors.find(c => c.hex.toLowerCase() === jsonValue.color_hex.toLowerCase());
-        var nfcType = types.find(t => t.value.toLowerCase() === jsonValue.type.toLowerCase());
+        // Try to parse with selected protocol first, then auto-detect
+        const parseResult = tagProtocolService.parseTagData(rawValue, selectedProtocol);
 
-        const newColor = nfcColor?.value ?? 'blue';
-        const newType = nfcType?.value ?? 'pla';
+        if (parseResult) {
+          const { data: parsedData, protocol: detectedProtocol } = parseResult;
 
-        setColor(newColor);
-        setType(newType);
-        setMinTemp(jsonValue.min_temp.toString());
-        setMaxTemp(jsonValue.max_temp.toString());
+          // Update UI with parsed data
+          const matchingColor = colors.find(c => c.hex.toLowerCase() === parsedData.color_hex.toLowerCase());
+          const matchingType = types.find(t => t.value.toLowerCase() === parsedData.type.toLowerCase());
 
-        // Store scanned filament data for printer functionality
-        setLastScannedFilament({
-          color_hex: jsonValue.color_hex,
-          type: newType,
-          min_temp: jsonValue.min_temp,
-          max_temp: jsonValue.max_temp,
-          brand: jsonValue.brand || 'Generic',
-        });
+          const newColor = matchingColor?.value ?? 'blue';
+          const newType = matchingType?.value ?? 'pla';
+
+          setColor(newColor);
+          setType(newType);
+          setMinTemp(parsedData.min_temp.toString());
+          setMaxTemp(parsedData.max_temp.toString());
+
+          // Set protocol if different from selected
+          if (detectedProtocol !== selectedProtocol) {
+            setSelectedProtocol(detectedProtocol);
+            Alert.alert(
+              'Protocol Auto-Detected',
+              `Tag uses ${detectedProtocol === TagProtocol.OPENSPOOL ? 'OpenSpool' : 'OpenTag3D'} protocol. Protocol selection has been updated.`
+            );
+          }
+
+          // Store scanned filament data for printer functionality
+          setLastScannedFilament(parsedData);
+        } else {
+          Alert.alert('Invalid Tag', 'Unable to parse tag data. Please ensure the tag contains valid filament information.');
+        }
       } else {
         Alert.alert('Empty tag detected.');
       }
@@ -243,18 +264,25 @@ const OpenSpool = () => {
 
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
-      const jsonData = {
-        version: '1.0',
-        protocol: 'openspool',
-        color_hex: colors.find(c => c.value === color)?.hex,
+      // Create filament data with protocol-specific defaults
+      const protocolDefaults = tagProtocolService.getDefaultDataForProtocol(selectedProtocol);
+      const filamentData: ExtendedFilamentData = {
+        color_hex: colors.find(c => c.value === color)?.hex || 'FFFFFF',
         type: type,
         min_temp: Number(minTemp),
         max_temp: Number(maxTemp),
         brand: 'Generic',
+        ...protocolDefaults,
       };
-      const jsonStr = JSON.stringify(jsonData);
-      const ndefRecords = Ndef.record(Ndef.TNF_MIME_MEDIA, 'application/json', '1', jsonStr);
 
+      const formattedData = tagProtocolService.formatTagData(filamentData, selectedProtocol);
+
+      if (!formattedData) {
+        Alert.alert('Error', 'Failed to format tag data for selected protocol.');
+        return;
+      }
+
+      const ndefRecords = Ndef.record(Ndef.TNF_MIME_MEDIA, 'application/json', '1', formattedData);
       const bytes = await Ndef.encodeMessage([ndefRecords]);
 
       if (bytes) {
@@ -420,6 +448,26 @@ const OpenSpool = () => {
                 <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
               )}
               activeColor="#3d3d3d" // Add highlight color
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Protocol</Text>
+            <Dropdown
+              style={styles.dropdown}
+              containerStyle={styles.dropdownContainer}
+              data={protocols}
+              labelField="label"
+              valueField="value"
+              placeholder="Select protocol"
+              value={selectedProtocol}
+              onChange={item => setSelectedProtocol(item.value)}
+              placeholderStyle={styles.placeHolder}
+              selectedTextStyle={styles.selected}
+              renderItem={(item) => (
+                <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+              )}
+              activeColor="#3d3d3d"
             />
           </View>
 

@@ -1,4 +1,5 @@
 import MQTT from 'sp-react-native-mqtt';
+import { ExtendedFilamentData } from './TagProtocolService';
 
 export interface PrinterSettings {
   ipAddress: string;
@@ -6,6 +7,7 @@ export interface PrinterSettings {
   accessCode?: string;
 }
 
+// Keep original interface for backwards compatibility
 export interface FilamentData {
   color_hex: string;
   type: string;
@@ -13,6 +15,9 @@ export interface FilamentData {
   max_temp: number;
   brand: string;
 }
+
+// Type alias for extended data
+export type FilamentDataInput = FilamentData | ExtendedFilamentData;
 
 export interface SlotInfo {
   id: string;
@@ -37,42 +42,42 @@ export class BambuPrinterService {
     ];
   }
 
-  // Get brand code mapping similar to OpenSpool ESP project
+  // Get brand code mapping with enhanced brand detection
   static getBrandCode(type: string, brand: string): string {
     const typeUpper = type.toUpperCase();
-    const brandLower = brand.toLowerCase();
+    const brandLower = (brand || 'generic').toLowerCase();
 
     if (typeUpper === 'TPU') {
       return brandLower === 'bambu' ? 'GFU01' : 'GFU99';
     } else if (typeUpper === 'PLA') {
-      if (brandLower === 'polyterra') {
+      if (brandLower.includes('polyterra')) {
         return 'GFL01';
       }
-      if (brandLower === 'polylite') {
+      if (brandLower.includes('polylite')) {
         return 'GFL00';
       }
-      if (brandLower === 'sunlu') {
+      if (brandLower.includes('sunlu')) {
         return 'GFSNL03';
       }
-      if (brandLower === 'bambu') {
+      if (brandLower === 'bambu' || brandLower.includes('bambu')) {
         return 'GFA00';
       }
       return 'GFL99';
     } else if (typeUpper === 'PETG') {
-      if (brandLower === 'sunlu') {
+      if (brandLower.includes('sunlu')) {
         return 'GFSNL08';
       }
       return 'GFG99';
     } else if (typeUpper === 'ABS') {
-      return brandLower === 'bambu' ? 'GFB00' : 'GFB99';
+      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFB00' : 'GFB99';
     } else if (typeUpper === 'ASA') {
       return 'GFB98';
     } else if (typeUpper === 'PC') {
-      return brandLower === 'bambu' ? 'GFC00' : 'GFC99';
-    } else if (typeUpper === 'PA') {
+      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFC00' : 'GFC99';
+    } else if (typeUpper === 'PA' || typeUpper === 'NYLON') {
       return 'GFN99';
     } else if (typeUpper === 'PA-CF') {
-      return brandLower === 'bambu' ? 'GFN03' : 'GFN98';
+      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFN03' : 'GFN98';
     } else if (typeUpper === 'PLA-CF') {
       return 'GFL98';
     } else if (typeUpper === 'PVA') {
@@ -140,7 +145,7 @@ export class BambuPrinterService {
     });
   }
 
-  async sendFilamentToSlot(filamentData: FilamentData, slot: SlotInfo): Promise<boolean> {
+  async sendFilamentToSlot(filamentData: FilamentDataInput, slot: SlotInfo): Promise<boolean> {
     if (!this.client || !this.isConnected()) {
       throw new Error('Not connected to printer');
     }
@@ -159,7 +164,9 @@ export class BambuPrinterService {
           colorHex += 'FF'; // Add full opacity
         }
 
-        const brandCode = BambuPrinterService.getBrandCode(filamentData.type, filamentData.brand);
+        // Use manufacturer or brand field with preference for manufacturer
+        const effectiveBrand = (filamentData as ExtendedFilamentData).manufacturer || filamentData.brand || 'Generic';
+        const brandCode = BambuPrinterService.getBrandCode(filamentData.type, effectiveBrand);
 
         const payload = {
           print: {
