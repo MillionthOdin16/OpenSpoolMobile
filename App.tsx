@@ -143,9 +143,18 @@ const OpenSpool = () => {
   };
 
   const verifyAndSetMinTemp = (temp: string) => {
-      // If the new minTemp is equal or greater than the maxTemp, adjust maxTemp
-    if (Number(temp) >= Number(maxTemp)) {
-        const tempPlusStep = Number(temp) + 5;
+    const tempValue = Number(temp);
+    const maxTempValue = Number(maxTemp);
+
+    // Enhanced validation
+    if (isNaN(tempValue) || tempValue < 0 || tempValue > 500) {
+      Alert.alert('Invalid Temperature', 'Minimum temperature must be between 0°C and 500°C.');
+      return;
+    }
+
+    // If the new minTemp is equal or greater than the maxTemp, adjust maxTemp
+    if (tempValue >= maxTempValue) {
+        const tempPlusStep = tempValue + 5;
         const highestTempValue = Number(temperatures[temperatures.length - 1].value);
 
         // Ensure maxTemp is always greater than minTemp
@@ -154,20 +163,31 @@ const OpenSpool = () => {
         setMaxTemp(String(newMaxTemp));
     }
 
-      // Set the new minTemp
+    // Set the new minTemp
     setMinTemp(temp);
   };
 
   const verifyAndSetMaxTemp = (temp: string) => {
-    if (Number(temp) <= Number(minTemp)) {
-      Alert.alert('Max temperature must be greater than min temperature');
+    const tempValue = Number(temp);
+    const minTempValue = Number(minTemp);
+
+    // Enhanced validation
+    if (isNaN(tempValue) || tempValue < 0 || tempValue > 500) {
+      Alert.alert('Invalid Temperature', 'Maximum temperature must be between 0°C and 500°C.');
+      return;
     }
+
+    if (tempValue <= minTempValue) {
+      Alert.alert('Temperature Error', 'Maximum temperature must be greater than minimum temperature.');
+      return;
+    }
+
     setMaxTemp(temp);
   };
 
-  const setTypeAndDefaults = (type: string) => {
-    setType(type);
-    const defaults = filamentDefaults[type];
+  const setTypeAndDefaults = (newType: string) => {
+    setType(newType);
+    const defaults = filamentDefaults[newType];
     if (defaults) {
         setMinTemp(String(defaults.minTemp));
         setMaxTemp(String(defaults.maxTemp));
@@ -200,16 +220,27 @@ const OpenSpool = () => {
       await NfcManager.requestTechnology(NfcTech.Ndef);
       const tag = await NfcManager.getTag();
 
-      if (tag?.ndefMessage) {
+      if (tag?.ndefMessage && tag.ndefMessage.length > 0) {
         const rawValue = tag.ndefMessage.map(record =>
           String.fromCharCode(...record.payload)
-        ).join('');
+        ).join('').trim();
+
+        if (!rawValue) {
+          Alert.alert('Empty Tag', 'The tag appears to be empty or contains no readable data.');
+          return;
+        }
 
         // Try to parse with selected protocol first, then auto-detect
         const parseResult = tagProtocolService.parseTagData(rawValue, selectedProtocol);
 
         if (parseResult) {
           const { data: parsedData, protocol: detectedProtocol } = parseResult;
+
+          // Enhanced validation of parsed data
+          if (!parsedData.color_hex || !parsedData.type || !parsedData.min_temp || !parsedData.max_temp) {
+            Alert.alert('Invalid Tag Data', 'The tag contains incomplete filament information.');
+            return;
+          }
 
           // Update UI with parsed data
           const matchingColor = colors.find(c => c.hex.toLowerCase() === parsedData.color_hex.toLowerCase());
@@ -226,22 +257,35 @@ const OpenSpool = () => {
           // Set protocol if different from selected
           if (detectedProtocol !== selectedProtocol) {
             setSelectedProtocol(detectedProtocol);
+            const protocolName = detectedProtocol === TagProtocol.OPENSPOOL ? 'OpenSpool' : 'OpenTag3D';
             Alert.alert(
               'Protocol Auto-Detected',
-              `Tag uses ${detectedProtocol === TagProtocol.OPENSPOOL ? 'OpenSpool' : 'OpenTag3D'} protocol. Protocol selection has been updated.`
+              `Tag uses ${protocolName} protocol. Protocol selection has been updated.`
             );
           }
 
           // Store scanned filament data for printer functionality
           setLastScannedFilament(parsedData);
+
+          Alert.alert(
+            'Tag Read Successfully',
+            `Filament: ${parsedData.brand} ${parsedData.type.toUpperCase()}\nColor: ${parsedData.color_hex}\nTemperature: ${parsedData.min_temp}°C - ${parsedData.max_temp}°C`
+          );
         } else {
-          Alert.alert('Invalid Tag', 'Unable to parse tag data. Please ensure the tag contains valid filament information.');
+          Alert.alert(
+            'Invalid Tag',
+            'Unable to parse tag data. Please ensure the tag contains valid OpenSpool or OpenTag3D filament information.'
+          );
         }
       } else {
-        Alert.alert('Empty tag detected.');
+        Alert.alert('Empty Tag', 'No NDEF message found on the tag.');
       }
     } catch (ex) {
       console.warn('NFC read failed - could be user or system failure', ex);
+      Alert.alert(
+        'Read Failed',
+        'Failed to read the tag. Please ensure NFC is enabled and try holding the tag closer to your device.'
+      );
     } finally {
       if (Platform.OS === 'android') {
         setReadTagModalOpen(false);
@@ -251,8 +295,23 @@ const OpenSpool = () => {
   }
 
   const writeNdef = async () => {
-    if (Number(minTemp) >= Number(maxTemp)) {
-      Alert.alert('Min temperature must be less than max temperature');
+    const minTempValue = Number(minTemp);
+    const maxTempValue = Number(maxTemp);
+
+    // Enhanced validation before writing
+    if (isNaN(minTempValue) || isNaN(maxTempValue) || minTempValue >= maxTempValue) {
+      Alert.alert('Temperature Error', 'Please ensure minimum temperature is less than maximum temperature.');
+      return;
+    }
+
+    if (minTempValue < 0 || maxTempValue > 500) {
+      Alert.alert('Temperature Range Error', 'Temperatures must be between 0°C and 500°C.');
+      return;
+    }
+
+    const selectedColor = colors.find(c => c.value === color);
+    if (!selectedColor) {
+      Alert.alert('Color Error', 'Please select a valid color.');
       return;
     }
 
@@ -267,10 +326,10 @@ const OpenSpool = () => {
       // Create filament data with protocol-specific defaults
       const protocolDefaults = tagProtocolService.getDefaultDataForProtocol(selectedProtocol);
       const filamentData: ExtendedFilamentData = {
-        color_hex: colors.find(c => c.value === color)?.hex || 'FFFFFF',
+        color_hex: selectedColor.hex,
         type: type,
-        min_temp: Number(minTemp),
-        max_temp: Number(maxTemp),
+        min_temp: minTempValue,
+        max_temp: maxTempValue,
         brand: 'Generic',
         ...protocolDefaults,
       };
@@ -278,7 +337,7 @@ const OpenSpool = () => {
       const formattedData = tagProtocolService.formatTagData(filamentData, selectedProtocol);
 
       if (!formattedData) {
-        Alert.alert('Error', 'Failed to format tag data for selected protocol.');
+        Alert.alert('Format Error', 'Failed to format tag data for selected protocol. Please check your input values.');
         return;
       }
 
@@ -287,10 +346,13 @@ const OpenSpool = () => {
 
       if (bytes) {
         await NfcManager.ndefHandler.writeNdefMessage(bytes);
+        Alert.alert('Success', `Tag written successfully using ${selectedProtocol === TagProtocol.OPENSPOOL ? 'OpenSpool' : 'OpenTag3D'} protocol.`);
       }
     } catch (error) {
       if(Platform.OS === 'android'){
-        Alert.alert('Failed to write to tag.', 'If corrupted, try again and keep tag in place for 1 full second.');
+        Alert.alert('Write Failed', 'Failed to write to tag. If corrupted, try again and keep tag in place for 1 full second.');
+      } else {
+        Alert.alert('Write Failed', 'Failed to write to tag. Please try again.');
       }
       console.error('Error writing JSON:', error);
     } finally {
@@ -330,21 +392,31 @@ const OpenSpool = () => {
 
   const connectToPrinter = async () => {
     if (!printerIpAddress.trim() || !printerSerialNumber.trim()) {
-      Alert.alert('Error', 'Please configure printer settings first.');
+      Alert.alert('Configuration Required', 'Please configure printer settings first.');
       setPrinterSettingsModalOpen(true);
       return;
     }
 
     setIsConnecting(true);
     try {
+      console.log('Attempting to connect to printer:', printerIpAddress);
       const connected = await bambuPrinterService.connect();
       setIsPrinterConnected(connected);
       if (connected) {
         Alert.alert('Success', 'Connected to printer successfully.');
+      } else {
+        Alert.alert(
+          'Connection Failed',
+          'Failed to establish connection with the printer. Please verify your network settings and try again.',
+        );
       }
     } catch (error) {
       setIsPrinterConnected(false);
-      Alert.alert('Connection Error', 'Failed to connect to printer. Please check your settings and network connection.');
+      console.error('Printer connection error:', error);
+      Alert.alert(
+        'Connection Error',
+        'Failed to connect to printer. Please check:\n• IP address is correct\n• Printer is on the same network\n• Access code is valid (if required)\n• Printer is powered on',
+      );
     } finally {
       setIsConnecting(false);
     }
@@ -352,27 +424,43 @@ const OpenSpool = () => {
 
   const sendFilamentToPrinter = async () => {
     if (!lastScannedFilament) {
-      Alert.alert('Error', 'Please scan a filament tag first.');
+      Alert.alert('No Filament Data', 'Please scan a filament tag first.');
       return;
     }
 
     if (!isPrinterConnected) {
-      Alert.alert('Error', 'Please connect to printer first.');
+      Alert.alert('Printer Not Connected', 'Please connect to printer first.');
       return;
     }
 
     try {
       const selectedSlotInfo = BambuPrinterService.getAvailableSlots().find(s => s.id === selectedSlot);
       if (!selectedSlotInfo) {
-        Alert.alert('Error', 'Invalid slot selection.');
+        Alert.alert('Invalid Slot', 'Invalid slot selection. Please select a valid printer slot.');
         return;
       }
 
+      console.log('Sending filament to printer:', {
+        slot: selectedSlotInfo.label,
+        filament: {
+          type: lastScannedFilament.type,
+          brand: lastScannedFilament.brand,
+          color: lastScannedFilament.color_hex,
+          temps: `${lastScannedFilament.min_temp}-${lastScannedFilament.max_temp}°C`,
+        },
+      });
+
       await bambuPrinterService.sendFilamentToSlot(lastScannedFilament, selectedSlotInfo);
-      Alert.alert('Success', `Filament settings sent to ${selectedSlotInfo.label} successfully.`);
+      Alert.alert(
+        'Success',
+        `Filament settings sent to ${selectedSlotInfo.label} successfully.\n\nFilament: ${lastScannedFilament.brand} ${lastScannedFilament.type.toUpperCase()}\nColor: #${lastScannedFilament.color_hex}\nTemperature: ${lastScannedFilament.min_temp}°C - ${lastScannedFilament.max_temp}°C`,
+      );
     } catch (error) {
-      Alert.alert('Error', 'Failed to send filament settings to printer.');
       console.error('Send filament error:', error);
+      Alert.alert(
+        'Send Failed',
+        'Failed to send filament settings to printer. Please ensure:\n• Printer is still connected\n• Selected slot is available\n• Network connection is stable',
+      );
     }
   };
 
@@ -386,7 +474,9 @@ const OpenSpool = () => {
             <View
                 style={[
                   styles.circle,
-                  { backgroundColor: isLoading ? '#ff0081' : `#${colors.find(c => c.value === color)?.hex}` || color },
+                  isLoading
+                    ? styles.loadingCircle
+                    : { backgroundColor: `#${colors.find(c => c.value === color)?.hex}` || color },
                 ]}
               />
               <Animated.Image
@@ -407,10 +497,7 @@ const OpenSpool = () => {
             <Text style={styles.label}>Color</Text>
             <Dropdown
               style={styles.dropdown}
-              containerStyle={[styles.dropdownContainer, {
-                maxHeight: 300,
-                backgroundColor: '#2d2d2d', // Darker background
-              }]}
+              containerStyle={[styles.dropdownContainer, styles.dropdownMaxHeight]}
               data={colors}
               labelField="label"
               valueField="value"
@@ -419,14 +506,12 @@ const OpenSpool = () => {
               onChange={item => setColor(item.value)}
               renderItem={renderColorItem}
               placeholderStyle={styles.placeHolder}
-              selectedTextStyle={[styles.selected, { color: '#ffffff' }]} // Accent color for selection
+              selectedTextStyle={[styles.selected, styles.whiteText]}
               flatListProps={{
                 nestedScrollEnabled: true,
                 scrollEnabled: true,
               }}
-              itemContainerStyle={{
-                backgroundColor: '#2d2d2d', // Match container background
-              }}
+              itemContainerStyle={styles.dropdownItemBackground}
               activeColor="#3d3d3d" // Slightly lighter for selection highlight
             />
           </View>
@@ -445,7 +530,7 @@ const OpenSpool = () => {
               placeholderStyle={styles.placeHolder}
               selectedTextStyle={styles.selected}
               renderItem={(item) => (
-                <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+                <Text style={[styles.colorLabel, styles.dropdownItemPadding]}>{item.label}</Text>
               )}
               activeColor="#3d3d3d" // Add highlight color
             />
@@ -465,7 +550,7 @@ const OpenSpool = () => {
               placeholderStyle={styles.placeHolder}
               selectedTextStyle={styles.selected}
               renderItem={(item) => (
-                <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+                <Text style={[styles.colorLabel, styles.dropdownItemPadding]}>{item.label}</Text>
               )}
               activeColor="#3d3d3d"
             />
@@ -484,9 +569,9 @@ const OpenSpool = () => {
                 value={minTemp}
                 onChange={item => verifyAndSetMinTemp(item.value)}
                 placeholderStyle={styles.placeHolder}
-                selectedTextStyle={[styles.selected, { color: '#ffffff' }]}
+                selectedTextStyle={[styles.selected, styles.whiteText]}
                 renderItem={(item) => (
-                  <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+                  <Text style={[styles.colorLabel, styles.dropdownItemPadding]}>{item.label}</Text>
                 )}
                 activeColor="#3d3d3d" // Add highlight color
               />
@@ -504,9 +589,9 @@ const OpenSpool = () => {
                 value={maxTemp}
                 onChange={item => verifyAndSetMaxTemp(item.value)}
                 placeholderStyle={styles.placeHolder}
-                selectedTextStyle={[styles.selected, { color: '#ffffff' }]}
+                selectedTextStyle={[styles.selected, styles.whiteText]}
                 renderItem={(item) => (
-                  <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+                  <Text style={[styles.colorLabel, styles.dropdownItemPadding]}>{item.label}</Text>
                 )}
                 activeColor="#3d3d3d" // Add highlight color
               />
@@ -531,7 +616,7 @@ const OpenSpool = () => {
               placeholderStyle={styles.placeHolder}
               selectedTextStyle={styles.selected}
               renderItem={(item) => (
-                <Text style={[styles.colorLabel, { padding: 10 }]}>{item.label}</Text>
+                <Text style={[styles.colorLabel, styles.dropdownItemPadding]}>{item.label}</Text>
               )}
               activeColor="#3d3d3d"
             />
@@ -961,6 +1046,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#363636',
     color: '#ffffff',
     fontSize: 16,
+  },
+  loadingCircle: {
+    backgroundColor: '#ff0081',
+  },
+  dropdownMaxHeight: {
+    maxHeight: 300,
+    backgroundColor: '#2d2d2d',
+  },
+  whiteText: {
+    color: '#ffffff',
+  },
+  dropdownItemBackground: {
+    backgroundColor: '#2d2d2d',
+  },
+  dropdownItemPadding: {
+    padding: 10,
   },
 });
 

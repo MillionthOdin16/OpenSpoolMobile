@@ -66,7 +66,11 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
 
   parseTagData(rawData: string): ExtendedFilamentData | null {
     try {
-      const jsonData = JSON.parse(rawData);
+      if (!rawData || typeof rawData !== 'string') {
+        return null;
+      }
+
+      const jsonData = JSON.parse(rawData.trim());
 
       // Validate required OpenSpool fields per specification
       if (!jsonData.color_hex || !jsonData.type ||
@@ -74,20 +78,33 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
         return null;
       }
 
+      // Enhanced validation for color hex format
+      const colorHex = String(jsonData.color_hex).replace('#', '').toUpperCase();
+      if (!/^[0-9A-F]{6}$/.test(colorHex)) {
+        return null;
+      }
+
+      // Temperature validation
+      const minTemp = Number(jsonData.min_temp);
+      const maxTemp = Number(jsonData.max_temp);
+      if (isNaN(minTemp) || isNaN(maxTemp) || minTemp >= maxTemp || minTemp < 0 || maxTemp > 500) {
+        return null;
+      }
+
       // Ensure brand is present - default to 'Generic' per spec
       const brand = jsonData.brand || 'Generic';
 
       return {
-        color_hex: jsonData.color_hex,
-        type: jsonData.type.toLowerCase(), // Normalize to lowercase for consistency
-        min_temp: Number(jsonData.min_temp),
-        max_temp: Number(jsonData.max_temp),
+        color_hex: colorHex,
+        type: String(jsonData.type).toLowerCase(), // Normalize to lowercase for consistency
+        min_temp: minTemp,
+        max_temp: maxTemp,
         brand: brand,
         protocol: jsonData.protocol || 'openspool',
         version: jsonData.version || '1.0',
-        diameter: jsonData.diameter,
-        weight: jsonData.weight,
-        length: jsonData.length,
+        diameter: jsonData.diameter ? Number(jsonData.diameter) : undefined,
+        weight: jsonData.weight ? Number(jsonData.weight) : undefined,
+        length: jsonData.length ? Number(jsonData.length) : undefined,
       };
     } catch (error) {
       console.error('Failed to parse OpenSpool tag data:', error);
@@ -128,15 +145,21 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
     // Validate all required OpenSpool specification fields
     return !!(
       data.color_hex &&
-      data.color_hex.length > 0 &&
+      typeof data.color_hex === 'string' &&
+      data.color_hex.length >= 6 &&
+      /^[0-9A-F]{6}$/i.test(data.color_hex.replace('#', '')) &&
       data.type &&
+      typeof data.type === 'string' &&
       data.type.length > 0 &&
-      (data.brand && data.brand.length > 0) &&
+      (data.brand && typeof data.brand === 'string' && data.brand.length > 0) &&
       typeof data.min_temp === 'number' &&
       typeof data.max_temp === 'number' &&
+      !isNaN(data.min_temp) &&
+      !isNaN(data.max_temp) &&
       data.min_temp < data.max_temp &&
-      data.min_temp > 0 &&
-      data.max_temp > 0
+      data.min_temp >= 0 &&
+      data.max_temp > 0 &&
+      data.max_temp <= 500
     );
   }
 }
@@ -148,11 +171,20 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
 
   parseTagData(rawData: string): ExtendedFilamentData | null {
     try {
-      const jsonData = JSON.parse(rawData);
+      if (!rawData || typeof rawData !== 'string') {
+        return null;
+      }
+
+      const jsonData = JSON.parse(rawData.trim());
 
       // OpenTag3D v0.003 uses specific field names from the spec
       const material_base = jsonData.material_base || jsonData.material || jsonData.type || '';
       const manufacturer = jsonData.manufacturer || jsonData.brand || 'Generic';
+
+      // Validate that we have essential data
+      if (!material_base || !manufacturer) {
+        return null;
+      }
 
       // Handle color - spec uses RGBA but also supports hex for compatibility
       let color_hex = jsonData.color_hex || jsonData.color || 'FFFFFF';
@@ -160,6 +192,12 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
         // Assume it's already hex without #
       } else if (color_hex.startsWith('#')) {
         color_hex = color_hex.substring(1);
+      }
+
+      // Enhanced color validation
+      color_hex = color_hex.toUpperCase();
+      if (!/^[0-9A-F]{6}$/.test(color_hex)) {
+        color_hex = 'FFFFFF'; // Default to white if invalid
       }
 
       // Temperature handling - OpenTag3D spec uses scaling factor of 5
@@ -356,17 +394,32 @@ export class OpenTag3DProtocolHandler implements ProtocolHandler {
   }
 
   validateData(data: ExtendedFilamentData): boolean {
-    // OpenTag3D v0.003 spec requires: manufacturer, material_base, color, target_diameter,
-    // target_weight, print_temp, bed_temp, density
+    // OpenTag3D v0.003 spec validation with enhanced checks
+    const effectiveBrand = data.brand || data.manufacturer || '';
+    const effectiveMaterial = data.material_base || data.material || data.type || '';
+    const effectiveDiameter = data.diameter || 0;
+
     return !!(
-      (data.brand || data.manufacturer) &&
-      (data.material_base || data.material || data.type) &&
+      effectiveBrand &&
+      typeof effectiveBrand === 'string' &&
+      effectiveBrand.length > 0 &&
+      effectiveMaterial &&
+      typeof effectiveMaterial === 'string' &&
+      effectiveMaterial.length > 0 &&
       data.color_hex &&
+      typeof data.color_hex === 'string' &&
+      /^[0-9A-F]{6}$/i.test(data.color_hex.replace('#', '')) &&
       typeof data.min_temp === 'number' &&
       typeof data.max_temp === 'number' &&
+      !isNaN(data.min_temp) &&
+      !isNaN(data.max_temp) &&
       data.min_temp < data.max_temp &&
-      data.diameter &&
-      data.diameter > 0
+      data.min_temp >= 0 &&
+      data.max_temp <= 500 &&
+      effectiveDiameter &&
+      typeof effectiveDiameter === 'number' &&
+      effectiveDiameter > 0 &&
+      effectiveDiameter <= 10 // Reasonable diameter range
     );
   }
 }

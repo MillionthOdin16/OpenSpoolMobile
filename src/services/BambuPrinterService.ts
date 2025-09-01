@@ -45,42 +45,60 @@ export class BambuPrinterService {
   // Get brand code mapping with enhanced brand detection
   static getBrandCode(type: string, brand: string): string {
     const typeUpper = type.toUpperCase();
-    const brandLower = (brand || 'generic').toLowerCase();
+    const brandLower = (brand || 'generic').toLowerCase().trim();
+
+    // Enhanced brand matching with partial string matching
+    const matchesBrand = (brandNames: string[]) =>
+      brandNames.some(b => brandLower.includes(b.toLowerCase()) || b.toLowerCase().includes(brandLower));
 
     if (typeUpper === 'TPU') {
-      return brandLower === 'bambu' ? 'GFU01' : 'GFU99';
+      return matchesBrand(['bambu', 'bambulab']) ? 'GFU01' : 'GFU99';
     } else if (typeUpper === 'PLA') {
-      if (brandLower.includes('polyterra')) {
+      if (matchesBrand(['polyterra'])) {
         return 'GFL01';
       }
-      if (brandLower.includes('polylite')) {
+      if (matchesBrand(['polylite'])) {
         return 'GFL00';
       }
-      if (brandLower.includes('sunlu')) {
+      if (matchesBrand(['sunlu'])) {
         return 'GFSNL03';
       }
-      if (brandLower === 'bambu' || brandLower.includes('bambu')) {
+      if (matchesBrand(['bambu', 'bambulab', 'bambu lab'])) {
         return 'GFA00';
+      }
+      if (matchesBrand(['polymaker'])) {
+        return 'GFL02';
+      }
+      if (matchesBrand(['hatchbox'])) {
+        return 'GFL03';
       }
       return 'GFL99';
     } else if (typeUpper === 'PETG') {
-      if (brandLower.includes('sunlu')) {
+      if (matchesBrand(['sunlu'])) {
         return 'GFSNL08';
+      }
+      if (matchesBrand(['bambu', 'bambulab', 'bambu lab'])) {
+        return 'GFG00';
+      }
+      if (matchesBrand(['polymaker'])) {
+        return 'GFG01';
       }
       return 'GFG99';
     } else if (typeUpper === 'ABS') {
-      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFB00' : 'GFB99';
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFB00' : 'GFB99';
     } else if (typeUpper === 'ASA') {
-      return 'GFB98';
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFB01' : 'GFB98';
     } else if (typeUpper === 'PC') {
-      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFC00' : 'GFC99';
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFC00' : 'GFC99';
     } else if (typeUpper === 'PA' || typeUpper === 'NYLON') {
-      return 'GFN99';
-    } else if (typeUpper === 'PA-CF') {
-      return (brandLower === 'bambu' || brandLower.includes('bambu')) ? 'GFN03' : 'GFN98';
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFN00' : 'GFN99';
+    } else if (typeUpper === 'PA-CF' || typeUpper === 'NYLON-CF') {
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFN03' : 'GFN98';
     } else if (typeUpper === 'PLA-CF') {
-      return 'GFL98';
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFL97' : 'GFL98';
     } else if (typeUpper === 'PVA') {
+      return matchesBrand(['bambu', 'bambulab', 'bambu lab']) ? 'GFS00' : 'GFS99';
+    } else if (typeUpper === 'SUPPORT') {
       return 'GFS99';
     }
 
@@ -157,17 +175,24 @@ export class BambuPrinterService {
     return new Promise((resolve, reject) => {
       try {
         const topic = `device/${this.settings!.serialNumber}/request`;
+        const extendedData = filamentData as ExtendedFilamentData;
 
-        // Ensure color hex has alpha channel
+        // Ensure color hex has alpha channel and proper format
         let colorHex = filamentData.color_hex;
+        if (colorHex.startsWith('#')) {
+          colorHex = colorHex.substring(1);
+        }
         if (colorHex.length === 6) {
           colorHex += 'FF'; // Add full opacity
+        } else if (colorHex.length !== 8) {
+          colorHex = 'FFFFFFFF'; // Default to white with full opacity
         }
 
         // Use manufacturer or brand field with preference for manufacturer
-        const effectiveBrand = (filamentData as ExtendedFilamentData).manufacturer || filamentData.brand || 'Generic';
+        const effectiveBrand = extendedData.manufacturer || filamentData.brand || 'Generic';
         const brandCode = BambuPrinterService.getBrandCode(filamentData.type, effectiveBrand);
 
+        // Build comprehensive payload with available data
         const payload = {
           print: {
             sequence_id: '0',
@@ -183,7 +208,31 @@ export class BambuPrinterService {
           },
         };
 
-        console.log('Sending filament data:', JSON.stringify(payload, null, 2));
+        // Add extended fields if available for enhanced printer integration
+        const printPayload = payload.print as any;
+
+        // Add bed temperature if available
+        if (extendedData.bed_temp !== undefined) {
+          printPayload.bed_temp_min = Math.max(0, extendedData.bed_temp - 5);
+          printPayload.bed_temp_max = Math.min(120, extendedData.bed_temp + 5);
+        }
+
+        // Add diameter information if available
+        if (extendedData.diameter !== undefined) {
+          printPayload.tray_diameter = extendedData.diameter;
+        }
+
+        // Add weight information if available (useful for remaining filament calculation)
+        if (extendedData.weight !== undefined) {
+          printPayload.remain_weight = Math.round(extendedData.weight);
+        }
+
+        // Add density for volume calculations if available
+        if (extendedData.density !== undefined) {
+          printPayload.k_value = extendedData.density;
+        }
+
+        console.log('Sending comprehensive filament data:', JSON.stringify(payload, null, 2));
 
         // sp-react-native-mqtt publish API: publish(topic, payload, qos, retain)
         this.client.publish(topic, JSON.stringify(payload), 0, false);
