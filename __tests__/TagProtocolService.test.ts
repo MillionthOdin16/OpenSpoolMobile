@@ -183,7 +183,7 @@ describe('TagProtocolService', () => {
     it('should return OpenTag3D defaults', () => {
       const defaults = service.getDefaultDataForProtocol(TagProtocol.OPENTAG3D);
       expect(defaults.protocol).toBe(TagProtocol.OPENTAG3D);
-      expect(defaults.version).toBe('1.0');
+      expect(defaults.version).toBe('0.003');
       expect(defaults.diameter).toBe(1.75);
       expect(defaults.manufacturer).toBe('Generic');
     });

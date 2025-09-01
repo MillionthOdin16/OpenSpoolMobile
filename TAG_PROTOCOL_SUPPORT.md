@@ -10,11 +10,14 @@ The OpenSpool Mobile app now supports multiple NFC tag protocols for reading and
 - Fields: `color_hex`, `type`, `min_temp`, `max_temp`, `brand`, `diameter`, `weight`, `length`
 - Simple JSON format compatible with existing OpenSpool ESP project
 
-### OpenTag3D Protocol v1.0
-- **Extended protocol** supporting additional metadata
+### OpenTag3D Protocol v0.003
+- **Extended protocol** conforming to official OpenTag3D specification v0.003
 - Compatible with broader 3D printing ecosystem
-- Additional fields: `manufacturer`, `material`, `grade`, `batch_number`, `production_date`, `expiry_date`, `bed_temp`, `density`
-- Field mapping for compatibility (e.g., `material` → `type`, `manufacturer` → `brand`)
+- Core spec fields: `tag_format`, `tag_version`, `manufacturer`, `material_base`, `color`, `target_diameter`, `print_temp`, `bed_temp`, `density`
+- Extended fields: `material_mod`, `color_name`, `serial`, `mfg_date`, `online_data_url`, and many more
+- Temperature scaling: Uses factor of 5 for temperature fields (print_temp, bed_temp) as per spec
+- Unit conversions: Diameter in micrometers (µm), density in µg/cm³, proper scaling applied
+- Field mapping for compatibility (e.g., `material_base` → `type`, `manufacturer` → `brand`)
 
 ## Features
 
@@ -50,10 +53,15 @@ The OpenSpool Mobile app now supports multiple NFC tag protocols for reading and
 
 ### Protocol Handlers
 - `OpenSpoolProtocolHandler`: Handles original OpenSpool format
-- `OpenTag3DProtocolHandler`: Handles extended OpenTag3D format
+- `OpenTag3DProtocolHandler`: Handles OpenTag3D format conforming to v0.003 specification
 - Each handler provides validation, parsing, and formatting methods
+- OpenTag3D handler includes proper temperature scaling and unit conversions per spec
 
 ### Data Mapping
 - Intelligent field mapping between protocols
+- OpenTag3D v0.003 compliance with proper scaling factors
+- Temperature fields scaled by factor of 5 (print_temp: 42 = 210°C)
+- Diameter conversion from micrometers to millimeters
+- Density conversion from µg/cm³ to g/cm³
 - Graceful handling of missing or incompatible fields
 - Preservation of protocol-specific metadata when possible
