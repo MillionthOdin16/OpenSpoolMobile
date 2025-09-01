@@ -46,7 +46,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         </View>
       );
     }
-    
+
     return (
       <View style={styles.item}>
         <Text style={styles.itemText}>{item.label}</Text>

@@ -25,11 +25,11 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   const getButtonStyle = () => {
     const baseStyles: ViewStyle[] = [styles.button];
-    
+
     // Size styles
     if (size === 'sm') { baseStyles.push(styles.smallButton); }
     if (size === 'lg') { baseStyles.push(styles.largeButton); }
-    
+
     // Variant styles
     switch (variant) {
       case 'secondary':
@@ -44,27 +44,27 @@ const Button: React.FC<ButtonProps> = ({
       default:
         baseStyles.push(styles.primaryButton);
     }
-    
+
     // State styles
     if (disabled) { baseStyles.push(styles.disabledButton); }
     if (fullWidth) { baseStyles.push(styles.fullWidth); }
     if (style) { baseStyles.push(style); }
-    
+
     return baseStyles;
   };
 
   const getTextStyle = () => {
     const baseStyles: TextStyle[] = [styles.buttonText];
-    
+
     // Size text styles
     if (size === 'sm') { baseStyles.push(styles.smallButtonText); }
     if (size === 'lg') { baseStyles.push(styles.largeButtonText); }
-    
+
     // Variant text styles
     if (variant === 'secondary') { baseStyles.push(styles.secondaryButtonText); }
-    
+
     if (textStyle) { baseStyles.push(textStyle); }
-    
+
     return baseStyles;
   };
 
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.MD,
     fontWeight: '600',
   },
-  
+
   // Size variants
   smallButton: {
     height: 36,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   largeButtonText: {
     fontSize: FONT_SIZES.LG,
   },
-  
+
   // Color variants
   primaryButton: {
     backgroundColor: COLORS.PRIMARY,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.ERROR,
     borderColor: COLORS.ERROR,
   },
-  
+
   // State variants
   disabledButton: {
     backgroundColor: COLORS.DISABLED,

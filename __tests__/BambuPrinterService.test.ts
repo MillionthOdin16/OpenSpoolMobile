@@ -1,12 +1,10 @@
-import { 
-  BambuPrinterService, 
-  PrinterSettings, 
-  FilamentData, 
+import {
+  BambuPrinterService,
+  PrinterSettings,
+  FilamentData,
   SlotInfo,
   PrintSpeed,
   CalibrationOption,
-  PrinterStatus,
-  AMSStatus
 } from '../src/services/BambuPrinterService';
 
 // Mock the MQTT library
@@ -14,7 +12,7 @@ jest.mock('sp-react-native-mqtt');
 
 describe('BambuPrinterService', () => {
   let service: BambuPrinterService;
-  
+
   beforeEach(() => {
     service = new BambuPrinterService();
     jest.clearAllMocks();
@@ -126,8 +124,6 @@ describe('BambuPrinterService', () => {
   });
 
   describe('print control methods', () => {
-    let service: BambuPrinterService;
-
     beforeEach(() => {
       service = new BambuPrinterService();
     });
@@ -148,8 +144,6 @@ describe('BambuPrinterService', () => {
   });
 
   describe('status management', () => {
-    let service: BambuPrinterService;
-
     beforeEach(() => {
       service = new BambuPrinterService();
     });

@@ -151,7 +151,7 @@ const SettingsScreen: React.FC = () => {
         {/* NFC & Protocol Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>NFC & Protocol</Text>
-          
+
           <CustomDropdown
             label="Default Protocol"
             data={protocolOptions}
@@ -172,7 +172,7 @@ const SettingsScreen: React.FC = () => {
         {/* App Behavior */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Behavior</Text>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingLabel}>Haptic Feedback</Text>
@@ -222,7 +222,7 @@ const SettingsScreen: React.FC = () => {
         {/* Appearance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Appearance</Text>
-          
+
           <CustomDropdown
             label="Theme"
             data={themeOptions}
@@ -237,7 +237,7 @@ const SettingsScreen: React.FC = () => {
         {/* Data Management */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Management</Text>
-          
+
           <Button
             title="Save Settings"
             onPress={saveSettings}
@@ -262,23 +262,23 @@ const SettingsScreen: React.FC = () => {
         {/* App Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Information</Text>
-          
+
           <View style={styles.infoContainer}>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Version</Text>
               <Text style={styles.infoValue}>1.0.0</Text>
             </View>
-            
+
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Build</Text>
               <Text style={styles.infoValue}>2024.1</Text>
             </View>
-            
+
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Supported Protocols</Text>
               <Text style={styles.infoValue}>OpenSpool, OpenTag3D v0.003</Text>
             </View>
-            
+
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Printer Support</Text>
               <Text style={styles.infoValue}>Bambu Lab (MQTT)</Text>

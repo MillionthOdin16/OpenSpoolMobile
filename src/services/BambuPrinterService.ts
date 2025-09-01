@@ -82,8 +82,11 @@ export enum PrintSpeed {
 }
 
 export enum CalibrationOption {
+  // eslint-disable-next-line no-bitwise
   BED_LEVELING = 1 << 1,
+  // eslint-disable-next-line no-bitwise
   VIBRATION_COMPENSATION = 1 << 2,
+  // eslint-disable-next-line no-bitwise
   MOTOR_NOISE_CANCELLATION = 1 << 3,
 }
 
@@ -206,7 +209,7 @@ export class BambuPrinterService {
       try {
         const message = JSON.stringify(payload);
         console.log('Sending command:', message);
-        
+
         // sp-react-native-mqtt publish API: publish(topic, payload, qos, retain)
         this.client.publish(this.commandTopic, message, 0, false);
         resolve(true);
@@ -363,13 +366,13 @@ export class BambuPrinterService {
           client.on('connect', () => {
             console.log('Connected to Bambu printer');
             this.connected = true;
-            
+
             // Subscribe to printer reports
             client.subscribe(this.reportTopic, 0);
-            
+
             // Request initial status
             this.requestStatusUpdate();
-            
+
             resolve(true);
           });
 
@@ -749,8 +752,11 @@ export class BambuPrinterService {
     motorNoiseCancellation?: boolean;
   } = {}): Promise<boolean> {
     let bitmask = 0;
+    // eslint-disable-next-line no-bitwise, curly
     if (options.bedLeveling !== false) bitmask |= CalibrationOption.BED_LEVELING;
+    // eslint-disable-next-line no-bitwise, curly
     if (options.vibrationCompensation !== false) bitmask |= CalibrationOption.VIBRATION_COMPENSATION;
+    // eslint-disable-next-line no-bitwise, curly
     if (options.motorNoiseCancellation !== false) bitmask |= CalibrationOption.MOTOR_NOISE_CANCELLATION;
 
     const payload = {

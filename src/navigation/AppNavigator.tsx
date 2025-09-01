@@ -14,11 +14,17 @@ import AboutScreen from '../screens/AboutScreen';
 const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => (
   <RNText style={[
     styles.tabIcon,
-    { color: focused ? '#ea338d' : '#999' },
+    focused ? styles.tabIconFocused : styles.tabIconInactive,
   ]}>
     {label}
   </RNText>
 );
+
+// Individual tab icon components to avoid creating during render
+const TagsTabIcon = ({ focused }: { focused: boolean }) => <TabIcon label="📱" focused={focused} />;
+const PrinterTabIcon = ({ focused }: { focused: boolean }) => <TabIcon label="🖨️" focused={focused} />;
+const SettingsTabIcon = ({ focused }: { focused: boolean }) => <TabIcon label="⚙️" focused={focused} />;
+const AboutTabIcon = ({ focused }: { focused: boolean }) => <TabIcon label="ℹ️" focused={focused} />;
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -57,7 +63,7 @@ const TabNavigator = () => {
         component={TagManagementScreen}
         options={{
           title: 'NFC Tags',
-          tabBarIcon: ({ focused }) => <TabIcon label="📱" focused={focused} />,
+          tabBarIcon: TagsTabIcon,
         }}
       />
       <Tab.Screen
@@ -65,7 +71,7 @@ const TabNavigator = () => {
         component={PrinterScreen}
         options={{
           title: 'Printer Control',
-          tabBarIcon: ({ focused }) => <TabIcon label="🖨️" focused={focused} />,
+          tabBarIcon: PrinterTabIcon,
         }}
       />
       <Tab.Screen
@@ -73,7 +79,7 @@ const TabNavigator = () => {
         component={SettingsScreen}
         options={{
           title: 'Settings',
-          tabBarIcon: ({ focused }) => <TabIcon label="⚙️" focused={focused} />,
+          tabBarIcon: SettingsTabIcon,
         }}
       />
       <Tab.Screen
@@ -81,7 +87,7 @@ const TabNavigator = () => {
         component={AboutScreen}
         options={{
           title: 'About',
-          tabBarIcon: ({ focused }) => <TabIcon label="ℹ️" focused={focused} />,
+          tabBarIcon: AboutTabIcon,
         }}
       />
     </Tab.Navigator>
@@ -139,6 +145,12 @@ const AppNavigator = () => {
 const styles = StyleSheet.create({
   tabIcon: {
     fontSize: 20,
+  },
+  tabIconFocused: {
+    color: '#ea338d',
+  },
+  tabIconInactive: {
+    color: '#999',
   },
 });
 

@@ -1,26 +1,26 @@
 export const COLORS = {
   // Brand colors
   PRIMARY: '#ea338d',
-  
+
   // Background colors
   BACKGROUND_DARK: '#1a1a1a',
   CARD_BACKGROUND: '#2d2d2d',
   INPUT_BACKGROUND: '#363636',
-  
+
   // Border colors
   BORDER_DEFAULT: '#404040',
   BORDER_FOCUS: '#ea338d',
-  
+
   // Text colors
   TEXT_PRIMARY: '#ffffff',
   TEXT_SECONDARY: '#999999',
   TEXT_PLACEHOLDER: '#999999',
-  
+
   // Status colors
   SUCCESS: '#0ACC38',
   ERROR: '#f72323',
   WARNING: '#f98c36',
-  
+
   // Special colors
   DISABLED: '#555555',
   OVERLAY: 'rgba(0, 0, 0, 0.5)',

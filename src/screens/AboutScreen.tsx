@@ -79,7 +79,7 @@ const AboutScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About OpenSpool</Text>
           <Text style={styles.description}>
-            OpenSpool Mobile is a comprehensive NFC-based filament management system designed for 3D printing enthusiasts and professionals. 
+            OpenSpool Mobile is a comprehensive NFC-based filament management system designed for 3D printing enthusiasts and professionals.
             It provides seamless integration with modern 3D printers and supports industry-standard protocols for maximum compatibility.
           </Text>
         </View>
@@ -94,7 +94,7 @@ const AboutScreen: React.FC = () => {
                 <Text style={styles.capabilityDescription}>Read, write, and validate filament tags</Text>
               </View>
             </View>
-            
+
             <View style={styles.capabilityItem}>
               <Text style={styles.capabilityIcon}>🖨️</Text>
               <View style={styles.capabilityText}>
@@ -102,7 +102,7 @@ const AboutScreen: React.FC = () => {
                 <Text style={styles.capabilityDescription}>Direct communication with Bambu Lab printers</Text>
               </View>
             </View>
-            
+
             <View style={styles.capabilityItem}>
               <Text style={styles.capabilityIcon}>🔄</Text>
               <View style={styles.capabilityText}>
@@ -110,7 +110,7 @@ const AboutScreen: React.FC = () => {
                 <Text style={styles.capabilityDescription}>Live status updates and bidirectional MQTT</Text>
               </View>
             </View>
-            
+
             <View style={styles.capabilityItem}>
               <Text style={styles.capabilityIcon}>📊</Text>
               <View style={styles.capabilityText}>
@@ -119,7 +119,7 @@ const AboutScreen: React.FC = () => {
               </View>
             </View>
           </View>
-          
+
           <Button
             title="View All Features"
             onPress={showFeatures}
@@ -135,28 +135,28 @@ const AboutScreen: React.FC = () => {
               <Text style={styles.techInfoLabel}>Framework</Text>
               <Text style={styles.techInfoValue}>React Native 0.76.5</Text>
             </View>
-            
+
             <View style={styles.techInfoItem}>
               <Text style={styles.techInfoLabel}>Language</Text>
               <Text style={styles.techInfoValue}>TypeScript</Text>
             </View>
-            
+
             <View style={styles.techInfoItem}>
               <Text style={styles.techInfoLabel}>NFC Library</Text>
               <Text style={styles.techInfoValue}>react-native-nfc-manager</Text>
             </View>
-            
+
             <View style={styles.techInfoItem}>
               <Text style={styles.techInfoLabel}>MQTT Protocol</Text>
               <Text style={styles.techInfoValue}>sp-react-native-mqtt</Text>
             </View>
-            
+
             <View style={styles.techInfoItem}>
               <Text style={styles.techInfoLabel}>Navigation</Text>
               <Text style={styles.techInfoValue}>React Navigation 6</Text>
             </View>
           </View>
-          
+
           <Button
             title="View Technical Details"
             onPress={showTechnicalSpecs}
@@ -167,7 +167,7 @@ const AboutScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Community & Support</Text>
-          
+
           <TouchableOpacity
             style={styles.linkItem}
             onPress={() => openLink('https://github.com/spuder/OpenSpool', 'OpenSpool Project')}
@@ -179,7 +179,7 @@ const AboutScreen: React.FC = () => {
             </View>
             <Text style={styles.linkArrow}>→</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.linkItem}
             onPress={() => openLink('https://opentag3d.info', 'OpenTag3D Specification')}
@@ -191,7 +191,7 @@ const AboutScreen: React.FC = () => {
             </View>
             <Text style={styles.linkArrow}>→</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.linkItem}
             onPress={() => openLink('https://github.com/bambulab', 'Bambu Lab GitHub')}
@@ -208,10 +208,10 @@ const AboutScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Open Source</Text>
           <Text style={styles.description}>
-            This application is built on open-source foundations and contributes to the 3D printing community. 
+            This application is built on open-source foundations and contributes to the 3D printing community.
             It implements industry-standard protocols and maintains compatibility with existing ecosystem tools.
           </Text>
-          
+
           <View style={styles.licenseContainer}>
             <Text style={styles.licenseTitle}>License & Attribution</Text>
             <Text style={styles.licenseText}>

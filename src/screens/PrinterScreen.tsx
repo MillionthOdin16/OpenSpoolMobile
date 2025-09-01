@@ -40,7 +40,7 @@ const PrinterScreen: React.FC = () => {
 
   useEffect(() => {
     loadPrinterSettings();
-    
+
     // Load last scanned filament from shared state
     const lastFilament = appStateManager.getLastScannedFilament();
     if (lastFilament) {
@@ -52,7 +52,7 @@ const PrinterScreen: React.FC = () => {
       setLastScannedFilament(filament);
     };
     appStateManager.addListener(handleFilamentUpdate);
-    
+
     // Set up status callbacks
     bambuPrinterService.onStatusUpdate = (status) => {
       setPrinterStatus(status);
@@ -118,12 +118,12 @@ const PrinterScreen: React.FC = () => {
 
     setIsConnecting(true);
     setConnectionStatus('Connecting...');
-    
+
     try {
       console.log('Attempting to connect to printer:', printerIpAddress);
       const connected = await bambuPrinterService.connect();
       setIsPrinterConnected(connected);
-      
+
       if (connected) {
         setConnectionStatus('Connected');
         Alert.alert('Success', 'Connected to printer successfully.');
@@ -191,8 +191,8 @@ const PrinterScreen: React.FC = () => {
   };
 
   const getConnectionStatusColor = () => {
-    if (isConnecting) return COLORS.WARNING;
-    if (isPrinterConnected) return COLORS.SUCCESS;
+    if (isConnecting) {return COLORS.WARNING;}
+    if (isPrinterConnected) {return COLORS.SUCCESS;}
     return COLORS.ERROR;
   };
 
@@ -256,7 +256,7 @@ const PrinterScreen: React.FC = () => {
         {/* Filament Management */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Filament Management</Text>
-          
+
           <CustomDropdown
             label="Target Slot"
             data={slotOptions}

@@ -24,14 +24,14 @@ import { appStateManager } from '../utils/AppStateManager';
 const TagManagementScreen: React.FC = () => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Form state
   const [color, setColor] = useState('magenta');
   const [type, setType] = useState('pla');
   const [minTemp, setMinTemp] = useState('180');
   const [maxTemp, setMaxTemp] = useState('210');
   const [selectedProtocol, setSelectedProtocol] = useState<TagProtocol>(TagProtocol.OPENSPOOL);
-  
+
   // Modal state
   const [readTagModalOpen, setReadTagModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('Read Tag');
@@ -59,15 +59,15 @@ const TagManagementScreen: React.FC = () => {
   });
 
   // Convert constants to dropdown options
-  const colorOptions: DropdownOption[] = FILAMENT_COLORS.map(color => ({
-    label: color.label,
-    value: color.value,
-    hex: color.hex,
+  const colorOptions: DropdownOption[] = FILAMENT_COLORS.map(colorItem => ({
+    label: colorItem.label,
+    value: colorItem.value,
+    hex: colorItem.hex,
   }));
 
-  const typeOptions: DropdownOption[] = FILAMENT_TYPES.map(type => ({
-    label: type.label,
-    value: type.value,
+  const typeOptions: DropdownOption[] = FILAMENT_TYPES.map(typeItem => ({
+    label: typeItem.label,
+    value: typeItem.value,
   }));
 
   const protocolOptions: DropdownOption[] = tagProtocolService.getAllProtocols().map(protocol => ({
@@ -271,7 +271,7 @@ const TagManagementScreen: React.FC = () => {
       if (bytes) {
         await NfcManager.ndefHandler.writeNdefMessage(bytes);
         Alert.alert('Success', `Tag written successfully using ${selectedProtocol === TagProtocol.OPENSPOOL ? 'OpenSpool' : 'OpenTag3D'} protocol.`);
-        
+
         // Update last scanned filament for easy transfer to printer
         setLastScannedFilament(filamentData);
         appStateManager.setLastScannedFilament(filamentData);
