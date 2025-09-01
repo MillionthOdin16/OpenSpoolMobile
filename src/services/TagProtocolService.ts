@@ -68,21 +68,24 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
     try {
       const jsonData = JSON.parse(rawData);
 
-      // Validate required OpenSpool fields
+      // Validate required OpenSpool fields per specification
       if (!jsonData.color_hex || !jsonData.type ||
           jsonData.min_temp === undefined || jsonData.max_temp === undefined) {
         return null;
       }
 
+      // Ensure brand is present - default to 'Generic' per spec
+      const brand = jsonData.brand || 'Generic';
+      
       return {
         color_hex: jsonData.color_hex,
-        type: jsonData.type.toLowerCase(),
+        type: jsonData.type.toLowerCase(), // Normalize to lowercase for consistency
         min_temp: Number(jsonData.min_temp),
         max_temp: Number(jsonData.max_temp),
-        brand: jsonData.brand || 'Generic',
+        brand: brand,
         protocol: jsonData.protocol || 'openspool',
         version: jsonData.version || '1.0',
-        diameter: jsonData.diameter || 1.75,
+        diameter: jsonData.diameter,
         weight: jsonData.weight,
         length: jsonData.length,
       };
@@ -93,18 +96,19 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
   }
 
   formatTagData(data: ExtendedFilamentData): string {
+    // Follow exact OpenSpool specification field order: protocol first, then version
     const openSpoolData: any = {
-      version: this.version,
       protocol: this.protocol,
-      color_hex: data.color_hex,
+      version: this.version,
       type: data.type,
+      color_hex: data.color_hex,
+      brand: data.brand || 'Generic',
       min_temp: data.min_temp,
       max_temp: data.max_temp,
-      brand: data.brand || 'Generic',
-      diameter: data.diameter || 1.75,
     };
 
-    // Add optional fields if present
+    // Add optional fields if present (these are extensions to the core spec)
+    if (data.diameter !== undefined) {openSpoolData.diameter = data.diameter;}
     if (data.weight !== undefined) {openSpoolData.weight = data.weight;}
     if (data.length !== undefined) {openSpoolData.length = data.length;}
 
@@ -121,12 +125,18 @@ export class OpenSpoolProtocolHandler implements ProtocolHandler {
   }
 
   validateData(data: ExtendedFilamentData): boolean {
+    // Validate all required OpenSpool specification fields
     return !!(
       data.color_hex &&
+      data.color_hex.length > 0 &&
       data.type &&
+      data.type.length > 0 &&
+      (data.brand && data.brand.length > 0) &&
       typeof data.min_temp === 'number' &&
       typeof data.max_temp === 'number' &&
-      data.min_temp < data.max_temp
+      data.min_temp < data.max_temp &&
+      data.min_temp > 0 &&
+      data.max_temp > 0
     );
   }
 }
